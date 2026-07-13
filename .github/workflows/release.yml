@@ -21,13 +21,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
       - name: Run tests
-        run: node ./test/run-tests.js
+        run: pnpm test
 
       - name: Package extension
-        env:
-          npm_config_ignore_scripts: "true"
-        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies
+        run: pnpm exec vsce package --no-dependencies
 
       - name: Create GitHub release
         shell: bash
