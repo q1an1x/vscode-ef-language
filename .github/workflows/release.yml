@@ -21,20 +21,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Enable pnpm
-        run: corepack enable
-
-      - name: Install dependencies
-        # Packaging an unsigned VSIX does not require the native credential or
-        # signing helpers pulled in by vsce. Skipping lifecycle scripts keeps
-        # the release build reproducible on clean GitHub-hosted runners.
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
       - name: Run tests
-        run: pnpm test
+        run: node ./test/run-tests.js
 
       - name: Package extension
-        run: pnpm exec vsce package --no-dependencies
+        env:
+          npm_config_ignore_scripts: "true"
+        run: npx --yes @vscode/vsce@3.9.2 package --no-dependencies
 
       - name: Create GitHub release
         shell: bash
