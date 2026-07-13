@@ -25,7 +25,10 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # Packaging an unsigned VSIX does not require the native credential or
+        # signing helpers pulled in by vsce. Skipping lifecycle scripts keeps
+        # the release build reproducible on clean GitHub-hosted runners.
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Run tests
         run: pnpm test
