@@ -1,0 +1,25 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [["{", "}"], ["[", "]"], ["(", ")"], ["<", ">"]],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "\"", "close": "\"", "notIn": ["string", "comment"] }
+  ],
+  "surroundingPairs": [["{", "}"], ["[", "]"], ["(", ")"], ["\"", "\""]],
+  "folding": {
+    "markers": {
+      "start": "^\\s*(?://\\s*#?region\\b|#(?:如果|if)\\b)",
+      "end": "^\\s*(?://\\s*#?endregion\\b|#(?:结束|endif)\\b)"
+    }
+  },
+  "indentationRules": {
+    "increaseIndentPattern": "^((?!.*//).)*(\\{[^}]*|#(?:如果|if)\\b.*)$",
+    "decreaseIndentPattern": "^\\s*(\\}|#(?:结束|endif)\\b)"
+  },
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^`~!@#$%^&*()=+\\[{\\]}\\\\|;:'\\\",.<>/?\\s]+)"
+}

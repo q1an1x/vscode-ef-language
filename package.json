@@ -1,0 +1,126 @@
+{
+  "name": "ef-language-support",
+  "displayName": "易语言.飞扬 (EF) Language Support",
+  "description": "为易语言.飞扬提供语法高亮、代码导航、工程构建、运行和诊断。",
+  "version": "0.1.1",
+  "publisher": "local-ef",
+  "author": "q1an1x",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/q1an1x/vscode-ef-language.git"
+  },
+  "homepage": "https://github.com/q1an1x/vscode-ef-language#readme",
+  "bugs": {
+    "url": "https://github.com/q1an1x/vscode-ef-language/issues"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages", "Other"],
+  "keywords": ["EF", "EFIDE", "易语言", "易语言飞扬"],
+  "activationEvents": [
+    "onLanguage:ef",
+    "workspaceContains:**/*.efp",
+    "onCommand:ef.build",
+    "onCommand:ef.run",
+    "onCommand:ef.openWhitebook",
+    "onCommand:ef.openApiDocs"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "ef",
+        "aliases": ["易语言.飞扬", "EF", "ef"],
+        "extensions": [".ef", ".inf"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/ef-light.svg",
+          "dark": "./images/ef-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ef",
+        "scopeName": "source.ef",
+        "path": "./syntaxes/ef.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "ef",
+        "path": "./snippets/ef.json"
+      }
+    ],
+    "commands": [
+      { "command": "ef.build", "title": "EF: 编译当前工程", "icon": "$(tools)" },
+      { "command": "ef.run", "title": "EF: 运行当前工程", "icon": "$(run)" },
+      { "command": "ef.buildAndRun", "title": "EF: 编译并运行", "icon": "$(debug-start)" },
+      { "command": "ef.selectProject", "title": "EF: 选择活动工程" },
+      { "command": "ef.openWhitebook", "title": "EF: 打开语言白皮书" },
+      { "command": "ef.openApiDocs", "title": "EF: 打开类库参考" }
+    ],
+    "menus": {
+      "editor/title/run": [
+        { "command": "ef.build", "when": "resourceLangId == ef", "group": "navigation@1" },
+        { "command": "ef.run", "when": "resourceLangId == ef", "group": "navigation@2" }
+      ]
+    },
+    "keybindings": [
+      { "command": "ef.build", "key": "ctrl+shift+b", "when": "editorLangId == ef" },
+      { "command": "ef.buildAndRun", "key": "f5", "when": "editorLangId == ef" }
+    ],
+    "configuration": {
+      "title": "易语言.飞扬",
+      "properties": {
+        "ef.compilerPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "efc.exe 路径。留空时自动从 EFIDE 安装目录和 PATH 查找。"
+        },
+        "ef.installRoot": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "易语言.飞扬安装根目录。留空时自动检测。"
+        },
+        "ef.projectFile": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "活动 .efp 工程文件；可使用相对工作区路径。留空时自动选择。"
+        },
+        "ef.build.debug": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "编译时加入调试信息 (-dbg)。"
+        },
+        "ef.build.extraArguments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "scope": "resource",
+          "description": "传递给 efc 的额外参数，每项一个参数。"
+        },
+        "ef.diagnostics.onType": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "编辑时检查括号、字符串和注释是否闭合。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node ./test/run-tests.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.2"
+  }
+}

@@ -1,0 +1,11 @@
+.git/**
+.gitignore
+.github/**
+.vscode/**
+test/**
+scripts/**
+node_modules/**
+pnpm-lock.yaml
+pnpm-workspace.yaml
+*.vsix
+**/*.map

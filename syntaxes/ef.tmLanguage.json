@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "易语言.飞扬",
+  "scopeName": "source.ef",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#preprocessor" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.ef", "begin": "//", "beginCaptures": { "0": { "name": "punctuation.definition.comment.ef" } }, "end": "$" },
+        { "name": "comment.block.ef", "begin": "/\\*", "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.ef" } }, "end": "\\*/", "endCaptures": { "0": { "name": "punctuation.definition.comment.end.ef" } }, "patterns": [{ "include": "#comments" }] }
+      ]
+    },
+    "preprocessor": {
+      "patterns": [
+        { "name": "meta.preprocessor.ef", "match": "^\\s*(#(?:如果|又如|否则|结束|定义|错误|if|elif|else|endif|define|error))\\b", "captures": { "1": { "name": "keyword.control.directive.ef" } } }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        { "name": "string.quoted.double.ef", "begin": "\"", "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.ef" } }, "end": "\"", "endCaptures": { "0": { "name": "punctuation.definition.string.end.ef" } }, "patterns": [{ "name": "constant.character.escape.ef", "match": "\\\\(?:[\\\\\"'0abfnrtv]|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4})" }] },
+        { "name": "string.quoted.single.ef", "begin": "'", "end": "'", "patterns": [{ "name": "constant.character.escape.ef", "match": "\\\\." }] }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.hex.ef", "match": "(?<![\\p{L}\\p{N}_])0[xX][0-9A-Fa-f]+(?:[uUlL]*)" },
+        { "name": "constant.numeric.ef", "match": "(?<![\\p{L}\\p{N}_])(?:\\d+\\.\\d*|\\.\\d+|\\d+)(?:[eE][+-]?\\d+)?(?:[fFdDlLuU]*)" }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        { "match": "\\b(类库|library)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)", "captures": { "1": { "name": "storage.type.ef" }, "2": { "name": "entity.name.namespace.ef" } } },
+        { "match": "\\b(类|class|接口|interface|枚举|enum)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)", "captures": { "1": { "name": "storage.type.ef" }, "2": { "name": "entity.name.type.ef" } } },
+        { "match": "\\b(友好名称|FriendlyName)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)", "captures": { "1": { "name": "storage.type.ef" }, "2": { "name": "entity.name.function.ef" } } }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        { "name": "keyword.control.ef", "match": "\\b(开始|循环|计次循环|遍历循环|C循环|到循环尾|跳出|循环尾|如果|又如|否则|假如|为|为其他|返回|do|while|counter|foreach|for|continue|break|tail|if|else|switch|case|default|return)\\b" },
+        { "name": "keyword.other.ef", "match": "\\b(引入|创建|检查|下一组参数|编译信息|文件数据|是否定义|import|new|assert|GetNextParameterGroup|GetCompilingInf|FileData|defined)\\b" },
+        { "name": "storage.modifier.ef", "match": "\\b(公开|扩展|私有|隐藏|静态|常量|事件处理|属性|可为空|最终|扩展开始|遍历方法|类型转换|可访问父对象|public|protected|private|hidden|static|const|EventHandler|property|nullable|final|extendable|enumerater|TypeConverter|AccessParent)\\b" },
+        { "name": "variable.language.ef", "match": "\\b(本对象|基类|this|base)\\b" }
+      ]
+    },
+    "types": {
+      "patterns": [
+        { "name": "storage.type.builtin.ef", "match": "\\b(逻辑|字节|短整数|整数|长整数|小数|双精度小数|文本|字节集|对象|动态类型|弱类型|boolean|byte|short|int|long|float|double|string|bin|object|variant)\\b" }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        { "name": "constant.language.ef", "match": "\\b(真|假|空|true|false|null)\\b" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "keyword.operator.ef", "match": "(?:===|!==|==|!=|<=|>=|&&|\\|\\||<<|>>|[+\\-*/%=&|^!~<>?:])" }
+      ]
+    }
+  }
+}
