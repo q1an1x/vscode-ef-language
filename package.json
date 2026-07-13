@@ -2,7 +2,7 @@
   "name": "ef-language-support",
   "displayName": "易语言.飞扬 (EF) Language Support",
   "description": "为易语言.飞扬提供语法高亮、代码导航、工程构建、运行和诊断。",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "q1an1x",
   "author": "q1an1x",
   "license": "MIT",
@@ -106,6 +106,14 @@
           "default": [],
           "scope": "resource",
           "description": "传递给 efc 的额外参数，每项一个参数。"
+        },
+        "ef.completion.keywordLanguage": {
+          "type": "string",
+          "enum": ["chinese", "bilingual", "english"],
+          "enumDescriptions": ["仅提示中文关键字、类型和修饰符。", "同时提示中文和英文关键字、类型和修饰符。", "仅提示英文关键字、类型和修饰符。"],
+          "default": "chinese",
+          "scope": "resource",
+          "description": "控制 EF 关键字补全所使用的语言。不会影响英文语法的解析和高亮。"
         },
         "ef.diagnostics.onType": {
           "type": "boolean",

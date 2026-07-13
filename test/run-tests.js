@@ -4,6 +4,7 @@ const assert = require('assert');
 const path = require('path');
 const { sanitize, parseSymbols, validate } = require('../src/parser');
 const { parseProject, createMakefile } = require('../src/project');
+const { selectCompletionLabels } = require('../src/completion');
 
 function testParser() {
   const source = `引入 java;
@@ -51,7 +52,16 @@ function testProject() {
   assert(!lines.find(line => line.endsWith('示例.inf')).includes('"'));
 }
 
+function testCompletionLanguage() {
+  const labels = ['可访问父对象', 'AccessParent', '检查', 'assert', '基类', 'base', '字节集', 'bin'];
+  assert.deepStrictEqual(selectCompletionLabels(labels, 'chinese'), ['可访问父对象', '检查', '基类', '字节集']);
+  assert.deepStrictEqual(selectCompletionLabels(labels, 'english'), ['AccessParent', 'assert', 'base', 'bin']);
+  assert.deepStrictEqual(selectCompletionLabels(labels, 'bilingual'), labels);
+  assert.deepStrictEqual(selectCompletionLabels(labels, 'unknown'), ['可访问父对象', '检查', '基类', '字节集']);
+}
+
 testParser();
 testDiagnostics();
 testProject();
+testCompletionLanguage();
 console.log('EF extension tests passed.');

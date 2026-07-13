@@ -8,6 +8,7 @@ const os = require('os');
 const crypto = require('crypto');
 const childProcess = require('child_process');
 const { KEYWORDS, BUILTIN_TYPES, MODIFIERS, parseSymbols, validate } = require('./parser');
+const { selectCompletionLabels } = require('./completion');
 const { parseProject, createMakefile } = require('./project');
 
 const selector = [{ language: 'ef', scheme: 'file' }, { language: 'ef', scheme: 'untitled' }];
@@ -280,16 +281,19 @@ const hoverProvider = {
 };
 
 const completionProvider = {
-  async provideCompletionItems() {
+  async provideCompletionItems(document) {
     await refreshIndex();
     const items = [];
+    const language = config(document.uri).get('completion.keywordLanguage', 'chinese');
     for (const [cn, en, detail] of KEYWORDS) {
-      for (const label of [cn, en].filter(Boolean)) {
+      for (const label of selectCompletionLabels([cn, en].filter(Boolean), language)) {
         const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword);
         item.detail = `${cn} / ${en}`; item.documentation = detail; items.push(item);
       }
     }
-    for (const label of [...BUILTIN_TYPES, ...MODIFIERS]) items.push(new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword));
+    for (const label of selectCompletionLabels([...BUILTIN_TYPES, ...MODIFIERS], language)) {
+      items.push(new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword));
+    }
     for (const symbol of index) {
       const item = new vscode.CompletionItem(symbol.name, symbol.kind === 'method' ? vscode.CompletionItemKind.Method : vscode.CompletionItemKind.Class);
       item.detail = symbol.signature; items.push(item);

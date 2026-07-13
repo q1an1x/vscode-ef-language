@@ -100,6 +100,7 @@ code .
 | `ef.projectFile` | 自动选择 | 活动 `.efp` 文件，可使用工作区相对路径 |
 | `ef.build.debug` | `true` | 编译时传递 `-dbg` |
 | `ef.build.extraArguments` | `[]` | 传递给编译器的附加参数 |
+| `ef.completion.keywordLanguage` | `chinese` | 关键字补全语言：仅中文、双语或仅英文 |
 | `ef.diagnostics.onType` | `true` | 编辑时启用结构检查 |
 
 自定义编译器路径示例：
