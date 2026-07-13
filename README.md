@@ -2,6 +2,7 @@
 
 [![License](https://img.shields.io/github/license/q1an1x/vscode-ef-language)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/q1an1x/vscode-ef-language)](https://github.com/q1an1x/vscode-ef-language/releases/latest)
+[![Visual Studio Marketplace](https://img.shields.io/visual-studio-marketplace/v/q1an1x.ef-language-support?label=Marketplace)](https://marketplace.visualstudio.com/items?itemName=q1an1x.ef-language-support)
 [![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-%5E1.85.0-007ACC?logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/)
 
 为[“易语言.飞扬”（EF）](http://dotef.eyuyan.com/)提供 Visual Studio Code 语言支持与工程工具链集成。
@@ -42,6 +43,14 @@ C:\Program Files (x86)\dywt\ef\bin\efc.exe
 未安装官方工具链时，语法高亮和部分代码浏览功能仍可使用，但无法编译或运行工程。
 
 ## 安装
+
+### 从 Visual Studio Marketplace 安装
+
+在 VS Code 扩展视图中搜索 `易语言.飞扬` 或 `EF Language Support`，选择本扩展并安装。也可以访问 [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=q1an1x.ef-language-support)，或通过命令行安装：
+
+```powershell
+code --install-extension q1an1x.ef-language-support
+```
 
 ### 从 GitHub Releases 安装
 
