@@ -3,7 +3,7 @@
   "displayName": "易语言.飞扬 (EF) Language Support",
   "description": "为易语言.飞扬提供语法高亮、代码导航、工程构建、运行和诊断。",
   "version": "0.1.1",
-  "publisher": "local-ef",
+  "publisher": "q1an1x",
   "author": "q1an1x",
   "license": "MIT",
   "repository": {
