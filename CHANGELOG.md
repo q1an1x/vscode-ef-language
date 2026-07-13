@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.1.3
+
+- 增加用于 VS Code 扩展列表和 Visual Studio Marketplace 的正式扩展图标
+- 增加 `EF: 同步源文件到当前工程` 命令和 `ef.project.sourceFileSync` 设置
+- 支持使用全拼或拼音首字母匹配中文关键字、内置类型和修饰符
+
 ## 0.1.2
 
 - 新增 `ef.completion.keywordLanguage` 设置，支持仅中文、双语和仅英文关键字补全

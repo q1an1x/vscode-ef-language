@@ -2,9 +2,9 @@
 
 const assert = require('assert');
 const path = require('path');
-const { sanitize, parseSymbols, validate } = require('../src/parser');
-const { parseProject, createMakefile } = require('../src/project');
-const { selectCompletionLabels } = require('../src/completion');
+const { KEYWORDS, BUILTIN_TYPES, MODIFIERS, sanitize, parseSymbols, validate } = require('../src/parser');
+const { parseProject, syncProjectSourceFiles, createMakefile } = require('../src/project');
+const { selectCompletionLabels, pinyinAliases, matchesPinyin } = require('../src/completion');
 
 function testParser() {
   const source = `引入 java;
@@ -58,10 +58,37 @@ function testCompletionLanguage() {
   assert.deepStrictEqual(selectCompletionLabels(labels, 'english'), ['AccessParent', 'assert', 'base', 'bin']);
   assert.deepStrictEqual(selectCompletionLabels(labels, 'bilingual'), labels);
   assert.deepStrictEqual(selectCompletionLabels(labels, 'unknown'), ['可访问父对象', '检查', '基类', '字节集']);
+  assert.deepStrictEqual(pinyinAliases('本对象'), ['benduixiang', 'bdx']);
+  assert(matchesPinyin('本对象', 'b'));
+  assert(matchesPinyin('本对象', 'bdx'));
+  assert(matchesPinyin('检查', 'jian'));
+  assert(matchesPinyin('双精度小数', 'sjdxs'));
+  assert(!matchesPinyin('本对象', 'jc'));
+  const chineseLabels = [...KEYWORDS.map(item => item[0]), ...BUILTIN_TYPES, ...MODIFIERS]
+    .filter(label => /\p{Script=Han}/u.test(label));
+  for (const label of chineseLabels) assert(pinyinAliases(label).length >= 2, `缺少拼音映射：${label}`);
+}
+
+function testProjectSourceSync() {
+  const projectPath = path.resolve('C:/work/工程/示例.efp');
+  const entry = path.resolve('C:/work/工程/入口.ef');
+  const added = path.resolve('C:/work/工程/模块/新类.ef');
+  const xml = `<?xml version="1.0"?>\r\n<ef-project>\r\n  <source-files>\r\n    <source-file file="入口.ef" breakpoints="1:2" />\r\n    <source-file file="旧类.ef" bookmarks="3" />\r\n  </source-files>\r\n</ef-project>`;
+  const result = syncProjectSourceFiles(xml, projectPath, [entry, added]);
+  assert.strictEqual(result.added.length, 1);
+  assert.strictEqual(result.removed.length, 1);
+  assert(result.xml.includes('<source-file file="入口.ef" breakpoints="1:2" />'));
+  assert(result.xml.includes('<source-file file="模块\\新类.ef" />'));
+  assert(!result.xml.includes('旧类.ef'));
+  const repeated = syncProjectSourceFiles(result.xml, projectPath, [entry, added]);
+  assert.strictEqual(repeated.xml, result.xml);
+  assert.strictEqual(repeated.added.length, 0);
+  assert.strictEqual(repeated.removed.length, 0);
 }
 
 testParser();
 testDiagnostics();
 testProject();
 testCompletionLanguage();
+testProjectSourceSync();
 console.log('EF extension tests passed.');

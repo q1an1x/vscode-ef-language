@@ -21,6 +21,58 @@ function parseAttributes(source) {
   return attrs;
 }
 
+function encodeXmlAttribute(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function pathKey(value) {
+  return path.resolve(value).replace(/[\\/]+/g, path.sep).toLowerCase();
+}
+
+function isInside(directory, file) {
+  const relative = path.relative(directory, file);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+function syncProjectSourceFiles(xml, projectPath, diskFiles) {
+  const directory = path.dirname(projectPath);
+  const desiredFiles = new Map();
+  for (const file of diskFiles.map(file => path.resolve(file)).filter(file => isInside(directory, file))) {
+    desiredFiles.set(pathKey(file), file);
+  }
+  const desired = [...desiredFiles.keys()].sort((left, right) => left.localeCompare(right));
+  const desiredSet = new Set(desired);
+  const existing = new Set();
+  const removed = [];
+  const sourceLinePattern = /^[ \t]*<source-file\b([^>]*?)(?:\/>|>\s*<\/source-file>)[ \t]*(?:\r?\n|$)/gim;
+  let updated = xml.replace(sourceLinePattern, (whole, attributes) => {
+    const file = parseAttributes(attributes).file;
+    if (!file) return whole;
+    const absolute = path.resolve(directory, file.replace(/[\\/]+/g, path.sep));
+    const key = pathKey(absolute);
+    existing.add(key);
+    if (isInside(directory, absolute) && !desiredSet.has(key)) {
+      removed.push(absolute);
+      return '';
+    }
+    return whole;
+  });
+  const added = desired.filter(file => !existing.has(file)).map(file => desiredFiles.get(file));
+  if (!added.length) return { xml: updated, added: [], removed };
+  const section = updated.match(/<source-files\b[^>]*>[\s\S]*?<\/source-files>/i);
+  if (!section) throw new Error('.efp 中没有找到 <source-files> 节点。');
+  const eol = updated.includes('\r\n') ? '\r\n' : '\n';
+  const indentMatch = section[0].match(/^([ \t]*)<source-file\b/m);
+  const closingIndent = section[0].match(/^([ \t]*)<\/source-files>/m)?.[1] || '    ';
+  const indent = indentMatch?.[1] || `${closingIndent}    `;
+  const lines = added.map(file => {
+    const relative = path.relative(directory, file).replace(/\//g, '\\');
+    return `${indent}<source-file file="${encodeXmlAttribute(relative)}" />${eol}`;
+  }).join('');
+  updated = updated.replace(/^([ \t]*)<\/source-files>/im, `${lines}$1</source-files>`);
+  return { xml: updated, added, removed };
+}
+
 function parseProject(xml, projectPath) {
   const directory = path.dirname(projectPath);
   const sourceFiles = [];
@@ -61,4 +113,4 @@ function createMakefile(project, options = {}) {
   return `${lines.join('\r\n')}\r\n`;
 }
 
-module.exports = { decodeXml, parseAttributes, parseProject, quoteMakefileToken, createMakefile };
+module.exports = { decodeXml, parseAttributes, parseProject, syncProjectSourceFiles, quoteMakefileToken, createMakefile };

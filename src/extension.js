@@ -8,8 +8,8 @@ const os = require('os');
 const crypto = require('crypto');
 const childProcess = require('child_process');
 const { KEYWORDS, BUILTIN_TYPES, MODIFIERS, parseSymbols, validate } = require('./parser');
-const { selectCompletionLabels } = require('./completion');
-const { parseProject, createMakefile } = require('./project');
+const { isChineseLabel, selectCompletionLabels, matchesPinyin } = require('./completion');
+const { parseProject, syncProjectSourceFiles, createMakefile } = require('./project');
 
 const selector = [{ language: 'ef', scheme: 'file' }, { language: 'ef', scheme: 'untitled' }];
 const output = vscode.window.createOutputChannel('易语言.飞扬');
@@ -19,6 +19,7 @@ let activeProjectPath = '';
 let lastBuild = null;
 let index = [];
 let indexPromise = null;
+const sourceSyncTimers = new Map();
 
 function config(uri) { return vscode.workspace.getConfiguration('ef', uri); }
 
@@ -86,6 +87,84 @@ async function loadProject(uri) {
   if (!projectPath) return null;
   const xml = (await fsp.readFile(projectPath, 'utf8')).replace(/^\uFEFF/, '');
   return parseProject(xml, projectPath);
+}
+
+function isPathInside(directory, file) {
+  const relative = path.relative(directory, file);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+async function listEfFiles(directory) {
+  const files = [];
+  const ignored = new Set(['.git', '.vscode', 'node_modules']);
+  async function visit(current) {
+    let entries;
+    try { entries = await fsp.readdir(current, { withFileTypes: true }); } catch (_) { return; }
+    await Promise.all(entries.map(async entry => {
+      const file = path.join(current, entry.name);
+      if (entry.isDirectory() && !ignored.has(entry.name)) await visit(file);
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.ef')) files.push(file);
+    }));
+  }
+  await visit(directory);
+  return files;
+}
+
+async function syncProjectSources(projectPath, showMessage = true) {
+  const bytes = await fsp.readFile(projectPath);
+  const hasBom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const xml = bytes.toString('utf8').replace(/^\uFEFF/, '');
+  const files = await listEfFiles(path.dirname(projectPath));
+  const result = syncProjectSourceFiles(xml, projectPath, files);
+  if (result.xml !== xml) await fsp.writeFile(projectPath, `${hasBom ? '\uFEFF' : ''}${result.xml}`, 'utf8');
+  invalidateIndex();
+  const summary = `添加 ${result.added.length} 个，移除 ${result.removed.length} 个`;
+  output.appendLine(`[EF] 同步工程源文件 ${projectPath}（${summary}）`);
+  if (showMessage) vscode.window.showInformationMessage(`EF 工程源文件同步完成：${summary}。`);
+  return result;
+}
+
+async function projectForSource(uri) {
+  const candidates = await projectCandidates();
+  const matches = candidates.map(item => item.fsPath)
+    .filter(projectPath => isPathInside(path.dirname(projectPath), uri.fsPath))
+    .sort((left, right) => right.length - left.length);
+  if (activeProjectPath && matches.includes(activeProjectPath)) return activeProjectPath;
+  return matches.length === 1 ? matches[0] : '';
+}
+
+async function scheduleSourceSync(uri) {
+  if (path.extname(uri.fsPath).toLowerCase() !== '.ef') return;
+  const mode = config(uri).get('project.sourceFileSync', 'prompt');
+  if (mode === 'off') return;
+  const projectPath = await projectForSource(uri);
+  if (!projectPath) return;
+  const previous = sourceSyncTimers.get(projectPath);
+  if (previous) clearTimeout(previous);
+  const timer = setTimeout(async () => {
+    sourceSyncTimers.delete(projectPath);
+    try {
+      if (mode === 'prompt') {
+        const choice = await vscode.window.showInformationMessage(
+          `检测到 EF 源文件变化，是否同步到 ${path.basename(projectPath)}？`,
+          '同步', '忽略'
+        );
+        if (choice !== '同步') return;
+      }
+      await syncProjectSources(projectPath, true);
+    } catch (error) {
+      output.appendLine(`[EF] ${error.stack || error.message || error}`);
+      vscode.window.showErrorMessage(`EF: 同步工程源文件失败：${error.message || error}`);
+    }
+  }, 350);
+  sourceSyncTimers.set(projectPath, timer);
+}
+
+function requestSourceSync(uri) {
+  scheduleSourceSync(uri).catch(error => {
+    output.appendLine(`[EF] ${error.stack || error.message || error}`);
+    vscode.window.showErrorMessage(`EF: 检查工程源文件失败：${error.message || error}`);
+  });
 }
 
 function outputPath(project) {
@@ -281,24 +360,39 @@ const hoverProvider = {
 };
 
 const completionProvider = {
-  async provideCompletionItems(document) {
+  async provideCompletionItems(document, position) {
     await refreshIndex();
     const items = [];
     const language = config(document.uri).get('completion.keywordLanguage', 'chinese');
+    const pinyinEnabled = config(document.uri).get('completion.pinyin', true);
+    const prefixRange = document.getWordRangeAtPosition(position, /[A-Za-z]+/);
+    const prefix = prefixRange ? document.getText(prefixRange).toLowerCase() : '';
+    const usePinyin = pinyinEnabled && /^[a-z]+$/.test(prefix);
+    const addKeyword = (label, detail, documentation) => {
+      if (usePinyin && isChineseLabel(label) && !matchesPinyin(label, prefix)) return;
+      const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword);
+      if (usePinyin && isChineseLabel(label)) {
+        item.filterText = prefix;
+        item.range = prefixRange;
+        item.sortText = `0-${label}`;
+      }
+      if (detail) item.detail = detail;
+      if (documentation) item.documentation = documentation;
+      items.push(item);
+    };
     for (const [cn, en, detail] of KEYWORDS) {
       for (const label of selectCompletionLabels([cn, en].filter(Boolean), language)) {
-        const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword);
-        item.detail = `${cn} / ${en}`; item.documentation = detail; items.push(item);
+        addKeyword(label, `${cn} / ${en}`, detail);
       }
     }
     for (const label of selectCompletionLabels([...BUILTIN_TYPES, ...MODIFIERS], language)) {
-      items.push(new vscode.CompletionItem(label, vscode.CompletionItemKind.Keyword));
+      addKeyword(label);
     }
     for (const symbol of index) {
       const item = new vscode.CompletionItem(symbol.name, symbol.kind === 'method' ? vscode.CompletionItemKind.Method : vscode.CompletionItemKind.Class);
       item.detail = symbol.signature; items.push(item);
     }
-    return items;
+    return new vscode.CompletionList(items, usePinyin);
   }
 };
 
@@ -376,14 +470,28 @@ function activate(context) {
     const selected = await resolveProject(vscode.window.activeTextEditor?.document.uri, true);
     if (selected) vscode.window.setStatusBarMessage(`EF 活动工程：${path.basename(selected)}`, 5000);
   })));
+  context.subscriptions.push(vscode.commands.registerCommand('ef.syncSourceFiles', guarded(async () => {
+    const projectPath = await resolveProject(vscode.window.activeTextEditor?.document.uri, true);
+    if (projectPath) await syncProjectSources(projectPath, true);
+  })));
   context.subscriptions.push(vscode.commands.registerCommand('ef.openWhitebook', guarded(() => openDocs('whitebook'))));
   context.subscriptions.push(vscode.commands.registerCommand('ef.openApiDocs', guarded(() => openDocs('api'))));
   context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
     if (event.document.languageId === 'ef') { invalidateIndex(); updateSyntaxDiagnostics(event.document); }
   }));
   context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateSyntaxDiagnostics));
-  context.subscriptions.push(vscode.workspace.onDidDeleteFiles(() => invalidateIndex()));
-  context.subscriptions.push(vscode.workspace.onDidCreateFiles(() => invalidateIndex()));
+  context.subscriptions.push(vscode.workspace.onDidDeleteFiles(event => {
+    invalidateIndex();
+    for (const uri of event.files) requestSourceSync(uri);
+  }));
+  context.subscriptions.push(vscode.workspace.onDidCreateFiles(event => {
+    invalidateIndex();
+    for (const uri of event.files) requestSourceSync(uri);
+  }));
+  context.subscriptions.push(vscode.workspace.onDidRenameFiles(event => {
+    invalidateIndex();
+    for (const item of event.files) { requestSourceSync(item.oldUri); requestSourceSync(item.newUri); }
+  }));
   for (const document of vscode.workspace.textDocuments) updateSyntaxDiagnostics(document);
   refreshIndex();
 }

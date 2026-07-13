@@ -88,6 +88,7 @@ code .
 | `EF: 编译并运行` | `F5`（EF 编辑器内） | 编译成功后启动输出文件 |
 | `EF: 运行当前工程` | — | 运行最近一次成功构建的输出文件 |
 | `EF: 选择活动工程` | — | 在多工程工作区中选择 `.efp` |
+| `EF: 同步源文件到当前工程` | — | 递归同步工程目录中的 `.ef` 与 `.efp` 源文件列表 |
 | `EF: 打开语言白皮书` | — | 打开本机 EF 白皮书 |
 | `EF: 打开类库参考` | — | 打开本机 EF API 文档 |
 
@@ -101,7 +102,11 @@ code .
 | `ef.build.debug` | `true` | 编译时传递 `-dbg` |
 | `ef.build.extraArguments` | `[]` | 传递给编译器的附加参数 |
 | `ef.completion.keywordLanguage` | `chinese` | 关键字补全语言：仅中文、双语或仅英文 |
+| `ef.completion.pinyin` | `true` | 使用全拼或拼音首字母匹配中文补全项 |
+| `ef.project.sourceFileSync` | `prompt` | `.ef` 文件变化时关闭同步、询问同步或自动同步 `.efp` |
 | `ef.diagnostics.onType` | `true` | 编辑时启用结构检查 |
+
+启用拼音补全后，可输入全拼或首字母选择中文关键字，例如输入 `b`、`bdx` 或 `benduixiang` 可补全为 `本对象`。
 
 自定义编译器路径示例：
 
@@ -113,7 +118,7 @@ code .
 
 ## 构建过程
 
-扩展不会修改 `.efp` 文件。每次构建时，它会：
+除非用户执行源文件同步命令，或将 `ef.project.sourceFileSync` 设为 `prompt` / `auto` 并确认同步，否则扩展不会修改 `.efp` 文件。每次构建时，它会：
 
 1. 读取活动工程的 XML 配置；
 2. 验证工程引用的源码是否存在；
